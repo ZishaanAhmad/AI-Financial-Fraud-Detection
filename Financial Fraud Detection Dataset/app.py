@@ -1,37 +1,35 @@
 import streamlit as st
 import pandas as pd
 import joblib
-import os
 
-# Paths
+# --- Config ---
 DATA_PATH = "Synthetic_Financial_datasets_log.csv"
-model_files = {
+MODEL_FILES = {
     "CatBoost": "new_models/CatBoost_balanced_ManualCV.joblib",
     "XGBoost": "new_models/XGBoost_ManualCV.joblib",
     "LightGBM": "new_models/LightGBM_balanced_ManualCV.joblib"
 }
+PAGE_SIZE = 1000
 
-# UI setup
-st.set_page_config(page_title="🚨 Fraud Detection (Batch)", layout="wide")
+# --- UI Setup ---
+st.set_page_config(page_title="🚨 Bulk Fraud Detector", layout="wide")
 st.title("🚨 Bulk Fraud Detection App")
-st.markdown("Using **local dataset** with selected machine learning model.")
+st.markdown("Detect fraudulent transactions on a **full dataset** using your selected ML model.")
 
-# Select model
-selected_model_name = st.selectbox("Select Model", list(model_files.keys()))
-model = joblib.load(model_files[selected_model_name])
+# --- Model Selector ---
+selected_model_name = st.selectbox("🔍 Select ML Model", list(MODEL_FILES.keys()))
+model = joblib.load(MODEL_FILES[selected_model_name])
 
-# Load dataset
+# --- Load Dataset ---
 @st.cache_data(show_spinner=True)
 def load_data():
     df = pd.read_csv(DATA_PATH)
 
     # Drop unused columns
     drop_cols = ["nameOrig", "nameDest", "isFlaggedFraud"]
-    for col in drop_cols:
-        if col in df.columns:
-            df.drop(col, axis=1, inplace=True)
+    df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True, errors='ignore')
 
-    # Map transaction type if needed
+    # Encode 'type'
     if df['type'].dtype == 'object':
         df['type'] = df['type'].map({
             "CASH_IN": 1,
@@ -44,12 +42,11 @@ def load_data():
     return df
 
 df = load_data()
-st.success(f"✅ Loaded dataset with {len(df):,} records.")
-st.markdown("### 📊 Preview of Raw Data")
+st.success(f"✅ Loaded dataset with **{len(df):,} records**")
 st.dataframe(df.head())
 
-# Predict
-if st.button("🚀 Run Fraud Prediction"):
+# --- Predict Button ---
+if st.button("🚀 Run Fraud Prediction on Full Dataset"):
     preds = model.predict(df)
     proba = model.predict_proba(df)[:, 1]
 
@@ -59,34 +56,35 @@ if st.button("🚀 Run Fraud Prediction"):
     fraud_count = (df['isFraud_pred'] == 1).sum()
     fraud_percent = (fraud_count / len(df)) * 100
 
-    st.markdown(f"### 🔍 Results for **{selected_model_name}**")
-    st.markdown(f"**🧾 Total Fraudulent Records Predicted:** {fraud_count:,} / {len(df):,} ({fraud_percent:.2f}%)")
+    st.markdown(f"### 🧾 **Total Fraudulent Records Predicted:** {fraud_count:,} / {len(df):,} ({fraud_percent:.2f}%)")
 
-    # Tabs to separate fraud and non-fraud
-    tab1, tab2, tab3 = st.tabs(["📁 All Results", "🚨 Fraudulent Only", "✅ Not Fraudulent"])
+    # --- Pagination ---
+    total_rows = df.shape[0]
+    total_pages = (total_rows // PAGE_SIZE) + (1 if total_rows % PAGE_SIZE > 0 else 0)
 
-    def paginate_dataframe(data, label):
-        page_size = 1000
-        total_rows = data.shape[0]
-        total_pages = (total_rows // page_size) + 1
+    st.markdown(f"**📄 Total Pages:** {total_pages}")
+    st.markdown("ℹ️ Enter page number to view that chunk of results.")
 
-        page = st.number_input(f"{label} - Page", 1, total_pages, 1, key=label)
-        start = (page - 1) * page_size
-        end = start + page_size
-        st.dataframe(data.iloc[start:end])
+    page = st.number_input("Enter Page Number", min_value=1, max_value=total_pages, value=1, step=1)
+    start = (page - 1) * PAGE_SIZE
+    end = start + PAGE_SIZE
+    paged_df = df.iloc[start:end]
+
+    # --- Tabs ---
+    tab1, tab2, tab3 = st.tabs(["📁 All Records", "🚨 Fraud Only", "✅ Not Fraud"])
 
     with tab1:
-        paginate_dataframe(df, "All Results")
+        st.dataframe(paged_df)
 
     with tab2:
-        paginate_dataframe(df[df['isFraud_pred'] == 1], "Fraudulent Records")
+        st.dataframe(paged_df[paged_df['isFraud_pred'] == 1])
 
     with tab3:
-        paginate_dataframe(df[df['isFraud_pred'] == 0], "Not Fraudulent Records")
+        st.dataframe(paged_df[paged_df['isFraud_pred'] == 0])
 
-    # Download button
+    # --- Download ---
     st.download_button(
-        "⬇️ Download Results as CSV",
+        label="⬇️ Download Full Results as CSV",
         data=df.to_csv(index=False),
         file_name="fraud_detection_results.csv",
         mime="text/csv"
