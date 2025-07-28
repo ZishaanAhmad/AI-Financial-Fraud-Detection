@@ -5,15 +5,15 @@ import joblib
 # --- Config ---
 DATA_PATH = "Synthetic_Financial_datasets_log.csv"
 MODEL_FILES = {
-    "CatBoost": "new_models/CatBoost_balanced_ManualCV.joblib",
-    "XGBoost": "new_models/XGBoost_ManualCV.joblib",
-    "LightGBM": "new_models/LightGBM_balanced_ManualCV.joblib"
+    "CatBoost": "new_models/CatBoost_balanced_ManualCV.joblib" # ,
+    # "XGBoost": "new_models/XGBoost_ManualCV.joblib",
+    # "LightGBM": "new_models/LightGBM_balanced_ManualCV.joblib"
 }
 PAGE_SIZE = 1000
 
 # --- UI Setup ---
-st.set_page_config(page_title="🚨 Bulk Fraud Detector", layout="wide")
-st.title("🚨 Bulk Fraud Detection App")
+st.set_page_config(page_title="AI Financial Fraud Detector", layout="wide")
+st.title("AI Financial Fraud Detection App")
 st.markdown("Detect fraudulent transactions on a **full dataset** using your selected ML model.")
 
 # --- Model Selector ---
@@ -42,11 +42,11 @@ def load_data():
     return df
 
 df = load_data()
-st.success(f"✅ Loaded dataset with **{len(df):,} records**")
+st.success(f"Loaded dataset with **{len(df):,} records**")
 st.dataframe(df.head())
 
 # --- Predict Button ---
-if st.button("🚀 Run Fraud Prediction on Full Dataset"):
+if st.button("Run Fraud Prediction on Full Dataset"):
     preds = model.predict(df)
     proba = model.predict_proba(df)[:, 1]
 
@@ -56,14 +56,14 @@ if st.button("🚀 Run Fraud Prediction on Full Dataset"):
     fraud_count = (df['isFraud_pred'] == 1).sum()
     fraud_percent = (fraud_count / len(df)) * 100
 
-    st.markdown(f"### 🧾 **Total Fraudulent Records Predicted:** {fraud_count:,} / {len(df):,} ({fraud_percent:.2f}%)")
+    st.markdown(f"###**Total Records Predicted:** {fraud_count:,} / {len(df):,} ({fraud_percent:.2f}%)")
 
     # --- Pagination ---
     total_rows = df.shape[0]
     total_pages = (total_rows // PAGE_SIZE) + (1 if total_rows % PAGE_SIZE > 0 else 0)
 
-    st.markdown(f"**📄 Total Pages:** {total_pages}")
-    st.markdown("ℹ️ Enter page number to view that chunk of results.")
+    st.markdown(f"**Total Pages:** {total_pages}")
+    st.markdown("Enter page number to view that chunk of results.")
 
     page = st.number_input("Enter Page Number", min_value=1, max_value=total_pages, value=1, step=1)
     start = (page - 1) * PAGE_SIZE
@@ -71,7 +71,7 @@ if st.button("🚀 Run Fraud Prediction on Full Dataset"):
     paged_df = df.iloc[start:end]
 
     # --- Tabs ---
-    tab1, tab2, tab3 = st.tabs(["📁 All Records", "🚨 Fraud Only", "✅ Not Fraud"])
+    tab1, tab2, tab3 = st.tabs(["All Records", "Fraud Only", "Not Fraud"])
 
     with tab1:
         st.dataframe(paged_df)
