@@ -17,7 +17,7 @@ st.title("AI Financial Fraud Detection App")
 st.markdown("Detect fraudulent transactions on a **full dataset** using your selected ML model.")
 
 # --- Model Selector ---
-selected_model_name = st.selectbox("🔍 Select ML Model", list(MODEL_FILES.keys()))
+selected_model_name = st.selectbox("Select ML Model", list(MODEL_FILES.keys()))
 model = joblib.load(MODEL_FILES[selected_model_name])
 
 # --- Load Dataset ---
