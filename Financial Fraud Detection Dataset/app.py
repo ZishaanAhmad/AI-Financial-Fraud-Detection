@@ -7,7 +7,7 @@ from sklearn.metrics import (
 )
 
 # --- Config ---
-# DATA_PATH = "Synthetic_Financial_datasets_log.csv"
+DATA_PATH = "Synthetic_Financial_datasets_log.csv"
 MODEL_FILES = {
     "CatBoost": "new_models/CatBoost_balanced_ManualCV.joblib"
 }
@@ -21,9 +21,7 @@ st.markdown("Detect fraudulent transactions on a **full dataset** using your sel
 # --- Load Dataset ---
 @st.cache_data(show_spinner=True)
 def load_data():
-    url = "https://drive.google.com/uc?export=download&id=1Yprq5nA7RoW3EP1mCY2RNYVBRkq8lN8g"
-    df = pd.read_csv(url)
-    # df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(DATA_PATH)
     drop_cols = ["nameOrig", "nameDest", "isFlaggedFraud"]
     df.drop(columns=[col for col in drop_cols if col in df.columns], inplace=True, errors='ignore')
     if df['type'].dtype == 'object':
