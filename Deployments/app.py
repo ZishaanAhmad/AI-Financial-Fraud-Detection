@@ -4,13 +4,13 @@ import pandas as pd
 import joblib
 import time
 import numpy as np
-from huggingface_hub import hf_hub_download
+# from huggingface_hub import hf_hub_download
 
 # --- Hugging Face Model Path ---
 os.environ["HF_HOME"] = "/tmp/hf_cache"
 os.makedirs("/tmp/hf_cache", exist_ok=True)
 
-REPO_ID = "Zishaan7/AI_financial_fraud_dataset"
+# REPO_ID = "Zishaan7/AI_financial_fraud_dataset"
 FILENAME = "XGBoost_GridSearchCV_3.joblib"  # Match notebook save name
 
 # --- Transaction Type Mapping ---
@@ -24,13 +24,13 @@ st.markdown("Enter transaction details to check if it may be **fraudulent**.")
 # --- Load Model + Metadata ---
 @st.cache_resource
 def load_model_with_meta():
-    model_path = hf_hub_download(
-        repo_id=REPO_ID,
-        filename=FILENAME,
-        repo_type="dataset",
-        cache_dir="/tmp/hf_cache"
-    )
-    saved = joblib.load(model_path)
+    # model_path = hf_hub_download(
+    #     repo_id=REPO_ID,
+    #     filename=FILENAME,
+    #     repo_type="dataset",
+    #     cache_dir="/tmp/hf_cache"
+    # )
+    saved = joblib.load(FILENAME)
     if isinstance(saved, dict):
         return saved['model'], saved.get('features'), saved.get('scaler'), saved.get('amount_mean'), saved.get('amount_std'), saved.get('best_threshold', 0.5)
     else:
