@@ -6,7 +6,8 @@ import time
 import numpy as np
 
 
-MODEL_PATH = "XGBoost_GridSearchCV_3.joblib"  # Match notebook save name
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "XGBoost_GridSearchCV_3.joblib")
 
 # --- Transaction Type Mapping ---
 TYPE_MAP = {"TRANSFER": 1, "CASH_OUT": 2, "PAYMENT": 3, "DEBIT": 4, "CASH_IN": 5}
