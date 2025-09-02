@@ -4,6 +4,14 @@ import numpy as np
 import joblib
 import os
 
+# Configure page layout to use wide mode
+st.set_page_config(
+    page_title="Financial Fraud Detection App",
+    page_icon="🚨",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
 # Title
 st.title("🚨 Financial Fraud Detection App (XGBoost)")
 
@@ -14,6 +22,7 @@ if not os.path.exists(MODEL_FILE):
     st.error(f"❌ Model file not found at: {MODEL_FILE}")
 else:
     model = joblib.load(MODEL_FILE)
+    st.success("✅ Model loaded successfully!")
 
 # --- Feature Engineering (same as training) ---
 def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
@@ -66,8 +75,11 @@ if uploaded_file is not None:
             # Read uploaded file as bytes, convert to DataFrame
             df = pd.read_csv(uploaded_file)
 
-            st.subheader("📋 Uploaded Data (First 5 rows)")
-            st.write(df.head())
+            st.subheader("📋 Uploaded Data")
+            st.dataframe(df[["step","type","amount","nameOrig","oldbalanceOrg",
+                           "newbalanceOrig","nameDest","oldbalanceDest","newbalanceDest"]], 
+                           use_container_width=True
+                        )
 
             df_processed = feature_engineering(df)
 
@@ -98,7 +110,9 @@ if uploaded_file is not None:
             # Show results
             st.subheader("✅ Predictions")
             st.dataframe(df[["step","type","amount","oldbalanceOrg","newbalanceOrig",
-                             "oldbalanceDest","newbalanceDest","isFraud"]])
+                             "oldbalanceDest","newbalanceDest","isFraud"]],
+                             use_container_width=True
+                        )
 
             # Download CSV
             csv_download = df.to_csv(index=False).encode("utf-8")
