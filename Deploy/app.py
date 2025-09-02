@@ -8,7 +8,7 @@ import os
 st.title("🚨 Fraud Detection App (XGBoost)")
 
 # Load model
-MODEL_FILE = "xgb_fraud_model1.joblib"
+MODEL_FILE = "xgb_fraud_model2.joblib"
 
 @st.cache_resource
 def load_model():
