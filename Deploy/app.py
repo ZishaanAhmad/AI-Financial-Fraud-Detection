@@ -5,16 +5,15 @@ import joblib
 import os
 
 # Title
-st.title("🚨 Fraud Detection App (XGBoost)")
+st.title("🚨 Financial Fraud Detection App (XGBoost)")
 
-# Load model
-MODEL_FILE = "xgb_fraud_model2.joblib"
+# --- Absolute Model Path ---
+MODEL_FILE = os.path.abspath("xgb_fraud_model2.joblib")
 
-# @st.cache_resource
-def load_model():
-    return joblib.load(MODEL_FILE)
-
-model = load_model()
+if not os.path.exists(MODEL_FILE):
+    st.error(f"❌ Model file not found at: {MODEL_FILE}")
+else:
+    model = joblib.load(MODEL_FILE)
 
 # --- Feature Engineering (same as training) ---
 def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
