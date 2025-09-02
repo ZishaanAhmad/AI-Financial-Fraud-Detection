@@ -15,14 +15,33 @@ st.set_page_config(
 # Title
 st.title("🚨 Financial Fraud Detection App (XGBoost)")
 
-# --- Absolute Model Path ---
-MODEL_FILE = os.path.abspath("xgb_fraud_model2.joblib")
+# --- Robust Model Path Handling ---
+def load_model():
+    # Try different possible paths
+    possible_paths = [
+        "xgb_fraud_model2.joblib",  # Same directory
+        os.path.join(os.path.dirname(__file__), "xgb_fraud_model2.joblib"),  # Script directory
+        os.path.join(".", "xgb_fraud_model2.joblib"),  # Current directory
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            try:
+                model = joblib.load(path)
+                st.success(f"✅ Model loaded successfully from: {path}")
+                return model
+            except Exception as e:
+                st.error(f"❌ Error loading model from {path}: {e}")
+                continue
+    
+    # If no model found, show debug info
+    st.error("❌ Model file not found in any expected location!")
+    st.error(f"Current working directory: {os.getcwd()}")
+    st.error(f"Files in current directory: {os.listdir('.')}")
+    return None
 
-if not os.path.exists(MODEL_FILE):
-    st.error(f"❌ Model file not found at: {MODEL_FILE}")
-else:
-    model = joblib.load(MODEL_FILE)
-    st.success("✅ Model loaded successfully!")
+# Load the model
+model = load_model()
 
 # --- Feature Engineering (same as training) ---
 def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
