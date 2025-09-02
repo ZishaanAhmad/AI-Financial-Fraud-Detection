@@ -57,54 +57,56 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
 
     return d
 
-# File uploader
+# --- File uploader ---
 uploaded_file = st.file_uploader("📂 Upload your transaction CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Load CSV
-    df = pd.read_csv(uploaded_file)
+    with st.spinner("⏳ Processing file and detecting fraud..."):
+        try:
+            # Read uploaded file as bytes, convert to DataFrame
+            df = pd.read_csv(uploaded_file)
 
-    st.subheader("📋 Uploaded Data (First 5 rows)")
-    st.write(df.head())
+            st.subheader("📋 Uploaded Data (First 5 rows)")
+            st.write(df.head())
 
-    # Apply feature engineering
-    df_processed = feature_engineering(df)
+            df_processed = feature_engineering(df)
 
-    # Final feature set (must match training features)
-    model_features = [
-        'step','amount','oldbalanceOrg','newbalanceOrig','oldbalanceDest','newbalanceDest',
-        'orig_delta','dest_delta','logAmount',
-        'origBalanceRatio','destBalanceRatio',
-        'origZeroBalance','destZeroBalance',
-        'rule_orig_inconsistent','rule_dest_inconsistent',
-        'rule_zero_origin_drain','rule_zero_dest_firstload'
-    ]
+            # Features for model
+            model_features = [
+                'step','amount','oldbalanceOrg','newbalanceOrig','oldbalanceDest','newbalanceDest',
+                'orig_delta','dest_delta','logAmount',
+                'origBalanceRatio','destBalanceRatio',
+                'origZeroBalance','destZeroBalance',
+                'rule_orig_inconsistent','rule_dest_inconsistent',
+                'rule_zero_origin_drain','rule_zero_dest_firstload'
+            ]
 
-    # Add one-hot encoded type features dynamically
-    type_features = [c for c in df_processed.columns if c.startswith("type_")]
-    model_features.extend(type_features)
+            # Add one-hot type columns dynamically
+            type_features = [c for c in df_processed.columns if c.startswith("type_")]
+            model_features.extend(type_features)
 
-    # Ensure all exist (fill missing with 0.0)
-    for f in model_features:
-        if f not in df_processed.columns:
-            df_processed[f] = 0.0
+            for f in model_features:
+                if f not in df_processed.columns:
+                    df_processed[f] = 0.0
 
-    df_model = df_processed[model_features]
+            df_model = df_processed[model_features]
 
-    # Predict
-    preds = model.predict(df_model)
+            # Predict
+            preds = model.predict(df_model)
+            df["isFraud"] = np.where(preds == 1, "YES", "NO")
 
-    # Map predictions to YES/NO
-    df["isFraud"] = np.where(preds == 1, "YES", "NO")
+            # Show results
+            st.subheader("✅ Predictions")
+            st.dataframe(df[["step","type","amount","oldbalanceOrg","newbalanceOrig",
+                             "oldbalanceDest","newbalanceDest","isFraud"]])
 
-    # Show results
-    st.subheader("✅ Predictions")
-    st.dataframe(df[["step","type","amount","oldbalanceOrg","newbalanceOrig",
-                     "oldbalanceDest","newbalanceDest","isFraud"]])
+            # Download CSV
+            csv_download = df.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Predictions CSV", csv_download,
+                               "fraud_predictions.csv", "text/csv")
 
-    # Option to download results
-    csv_download = df.to_csv(index=False).encode("utf-8")
-    st.download_button("⬇️ Download Predictions CSV", csv_download,
-                       "fraud_predictions.csv", "text/csv")
+            st.success("🎉 File processed successfully!")
+        except Exception as e:
+            st.error(f"❌ Error processing file: {e}")
 else:
     st.info("👆 Please upload a CSV file to start.")
