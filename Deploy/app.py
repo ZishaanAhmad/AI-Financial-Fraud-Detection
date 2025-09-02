@@ -10,11 +10,8 @@ st.title("🚨 Fraud Detection App (XGBoost)")
 # Load model
 MODEL_FILE = "xgb_fraud_model1.joblib"
 
-@st.cache_resource
+# @st.cache_resource
 def load_model():
-    if not os.path.exists(MODEL_FILE):
-        st.error(f"❌ Model file '{MODEL_FILE}' not found in the app directory.")
-        st.stop()
     return joblib.load(MODEL_FILE)
 
 model = load_model()
