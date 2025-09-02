@@ -1,76 +1,88 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import joblib
 import os
 
-# --- Config ---
-BASE_DIR = os.path.dirname(__file__)
-MODEL_FILES = {
-    "XGBoost": os.path.join(BASE_DIR, "xgb_fraud_model1.joblib")
-}
+# Title
+st.title("🚨 Fraud Detection App (XGBoost)")
 
-# --- UI Setup ---
-st.set_page_config(page_title="AI Financial Fraud Detector", layout="wide")
-st.title("🔍 AI Financial Fraud Detection App")
-st.markdown("Upload a CSV file with transactions and check if they are **Fraud** or **Not Fraud**.")
+# Load model
+MODEL_FILE = "xgb_fraud_model1.joblib"
 
-# --- File Upload ---
-uploaded_file = st.file_uploader("Upload CSV File", type=["csv"])
+@st.cache_resource
+def load_model():
+    if not os.path.exists(MODEL_FILE):
+        st.error(f"❌ Model file '{MODEL_FILE}' not found in the app directory.")
+        st.stop()
+    return joblib.load(MODEL_FILE)
 
-# --- Model Selection ---
-selected_model_name = st.selectbox("Select ML Model", list(MODEL_FILES.keys()))
-model = joblib.load(MODEL_FILES[selected_model_name])
+model = load_model()
+
+# File uploader
+uploaded_file = st.file_uploader("📂 Upload your transaction CSV file", type=["csv"])
 
 if uploaded_file is not None:
     # Load CSV
     df = pd.read_csv(uploaded_file)
 
-    st.markdown("### 📑 Uploaded Data (first 10 rows)")
-    st.dataframe(df.head(10))
+    st.subheader("📋 Uploaded Data (First 5 rows)")
+    st.write(df.head())
 
-    # --- Preprocess ---
-    required_cols = [
-        "step", "type", "amount", "nameOrig", "oldbalanceOrg",
-        "newbalanceOrig", "nameDest", "oldbalanceDest", "newbalanceDest"
+    # --- Feature Engineering ---
+    df_processed = df.copy()
+
+    # Encode type (map unseen types to 0)
+    df_processed['type'] = df_processed['type'].map({
+        "CASH_IN": 1,
+        "CASH_OUT": 2,
+        "DEBIT": 3,
+        "TRANSFER": 4,
+        "PAYMENT": 5
+    }).fillna(0).astype(int)
+
+    # Derived features
+    df_processed['origBalanceDiff'] = df_processed['oldbalanceOrg'] - df_processed['newbalanceOrig']
+    df_processed['destBalanceDiff'] = df_processed['oldbalanceDest'] - df_processed['newbalanceDest']
+
+    df_processed['origBalanceRatio'] = df_processed.apply(
+        lambda x: x['amount'] / (x['oldbalanceOrg']+1) if x['oldbalanceOrg'] > 0 else 0, axis=1
+    )
+    df_processed['destBalanceRatio'] = df_processed.apply(
+        lambda x: x['amount'] / (x['oldbalanceDest']+1) if x['oldbalanceDest'] > 0 else 0, axis=1
+    )
+
+    df_processed['origZeroBalance'] = (df_processed['oldbalanceOrg'] == 0).astype(int)
+    df_processed['destZeroBalance'] = (df_processed['oldbalanceDest'] == 0).astype(int)
+
+    df_processed['logAmount'] = (df_processed['amount'] + 1).apply(lambda x: np.log(x))
+    df_processed['amountToOrigBalance'] = df_processed.apply(
+        lambda x: x['amount'] / (x['oldbalanceOrg']+1), axis=1
+    )
+
+    # Final feature set (must match training features)
+    final_features = [
+        'step','type','amount','oldbalanceOrg','newbalanceOrig',
+        'oldbalanceDest','newbalanceDest','origBalanceDiff',
+        'destBalanceDiff','origBalanceRatio','destBalanceRatio',
+        'origZeroBalance','destZeroBalance','logAmount','amountToOrigBalance'
     ]
-    missing_cols = [c for c in required_cols if c not in df.columns]
-    if missing_cols:
-        st.error(f"❌ Missing required columns: {missing_cols}")
-    else:
-        # Drop ID-like columns
-        df_processed = df.copy()
-        drop_cols = ["nameOrig", "nameDest"]
-        df_processed.drop(columns=[col for col in drop_cols if col in df_processed.columns], inplace=True, errors="ignore")
 
-        # Encode type
-        if df_processed['type'].dtype == 'object':
-            df_processed['type'] = df_processed['type'].map({
-                "CASH_IN": 1,
-                "CASH_OUT": 2,
-                "DEBIT": 3,
-                "TRANSFER": 4,
-                "PAYMENT": 5
-            }).fillna(0).astype(int)
+    df_model = df_processed[final_features]
 
-        # --- Run Predictions ---
-        preds = model.predict(df_processed)
-        proba = model.predict_proba(df_processed)[:, 1]
+    # Predict
+    preds = model.predict(df_model)
 
-        # Add results to original df
-        df['isFraud'] = preds
-        df['fraud_proba'] = proba
+    # Map predictions to YES/NO
+    df["isFraud"] = np.where(preds == 1, "YES", "NO")
 
-        # Replace 1/0 with YES/NO
-        df['isFraud'] = df['isFraud'].map({1: "YES", 0: "NO"})
+    # Show results
+    st.subheader("✅ Predictions")
+    st.dataframe(df[["step","type","amount","oldbalanceOrg","newbalanceOrig",
+                     "oldbalanceDest","newbalanceDest","isFraud"]])
 
-        # --- Show Results ---
-        st.markdown("### 🔎 Prediction Results")
-        st.dataframe(df[required_cols + ['isFraud', 'fraud_proba']].head(50))
-
-        # --- Download Button ---
-        st.download_button(
-            label="⬇️ Download Results CSV",
-            data=df.to_csv(index=False),
-            file_name="fraud_predictions.csv",
-            mime="text/csv"
-        )
+    # Option to download results
+    csv_download = df.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Download Predictions CSV", csv_download, "fraud_predictions.csv", "text/csv")
+else:
+    st.info("👆 Please upload a CSV file to start.")
