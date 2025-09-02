@@ -1,10 +1,12 @@
 import streamlit as st
 import pandas as pd
 import joblib
+import os
 
 # --- Config ---
+BASE_DIR = os.path.dirname(__file__)
 MODEL_FILES = {
-    "XGBoost": "xgb_fraud_model1.joblib"
+    "XGBoost": os.path.join(BASE_DIR, "xgb_fraud_model1.joblib")
 }
 
 # --- UI Setup ---
@@ -28,8 +30,8 @@ if uploaded_file is not None:
 
     # --- Preprocess ---
     required_cols = [
-        "step","type","amount","nameOrig","oldbalanceOrg",
-        "newbalanceOrig","nameDest","oldbalanceDest","newbalanceDest"
+        "step", "type", "amount", "nameOrig", "oldbalanceOrg",
+        "newbalanceOrig", "nameDest", "oldbalanceDest", "newbalanceDest"
     ]
     missing_cols = [c for c in required_cols if c not in df.columns]
     if missing_cols:
