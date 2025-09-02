@@ -1,0 +1,30 @@
+{
+  "model_path": "new_models/xgb_fraud_model1.joblib",
+  "features_used": [
+    "amount",
+    "oldbalanceOrg",
+    "newbalanceOrig",
+    "oldbalanceDest",
+    "newbalanceDest",
+    "type_mapped",
+    "orig_delta",
+    "dest_delta",
+    "logAmount",
+    "origBalanceRatio",
+    "destBalanceRatio",
+    "origZeroBalance",
+    "destZeroBalance",
+    "rule_orig_inconsistent",
+    "rule_dest_inconsistent",
+    "rule_zero_origin_drain",
+    "rule_zero_dest_firstload"
+  ],
+  "rule_tol": 1e-09,
+  "rule_columns": [
+    "rule_orig_inconsistent",
+    "rule_dest_inconsistent",
+    "rule_zero_origin_drain",
+    "rule_zero_dest_firstload",
+    "fraud_strict"
+  ]
+}
