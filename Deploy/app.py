@@ -48,7 +48,7 @@ def feature_engineering(df: pd.DataFrame) -> pd.DataFrame:
     d = df.copy()
 
     # Drop identifiers
-    d.drop(columns=["nameOrig", "nameDest"], inplace=True, errors="ignore")
+    d.drop(columns=[col for col in ["nameOrig", "nameDest"] if col in d.columns], inplace=True)
 
     # Ensure numeric types
     for c in ['step','amount','oldbalanceOrg','newbalanceOrig','oldbalanceDest','newbalanceDest']:
